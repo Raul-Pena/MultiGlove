@@ -24,25 +24,29 @@ void loop() {
   int Pin = analogRead(A0),Pin2 = analogRead(A1);
   float Vin = 0.0;
                                       
-  if(Pin > 0){
-    Vin = Pin * (5.0*11.996/ 1023);
+  if(Pin > 0 ){//&& Pin2 <= 0
+    Vin = (Pin * (5.0*12.19512195/ 1024) * 0.92);  //*.98; *12.19512195 
     lcd.setCursor(0, 1);
     lcd.print(" ");
     lcd.setCursor(1, 1);
+    //lcd.print(Pin, 3);
     lcd.print(Vin, 3);
-    lcd.print(" VOLT DC "); // Custom Text
+    //lcd.print(" Pin Val");
+    lcd.print(" VOLT DC ");
     delay(500);
     
-  }else if(Pin2 > 0){
-    Vin = Pin2 * (5.0*23.992 / 1023); // Pin to Vin (Reduction Factor 11)  
+  }else if(Pin2 > 0 ){//&& Pin <= 0
+    Vin = Pin2 * (5.0*23.992 / 1024); // Pin to Vin (Reduction Factor 11)  
     lcd.setCursor(0, 1);
     lcd.print("-");
     lcd.setCursor(1, 1);
-    //lcd.print("- ");
+    //lcd.print(Pin2, 3);
     lcd.print(Vin, 3);
+    //lcd.print("  -Pin Val");
     lcd.print(" VOLT DC "); // Custom Text
     delay(500);
-  }else{
+    
+  }else {//if(Pin <= 0 && Pin2 <= 0){
     lcd.setCursor(0, 1);
     lcd.print(" ");
     lcd.setCursor(1, 1);
@@ -50,7 +54,8 @@ void loop() {
     lcd.print(" VOLT DC "); // Custom Text
     delay(500);  
   }
-    /*tone(buzzer,1000);
+    /*ton
+     * e(buzzer,1000);
     delay(1000);
     noTone(buzzer);
     delay(1000);*/
