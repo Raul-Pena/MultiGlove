@@ -12,7 +12,7 @@ int cnt = 0, wrldPin = 0;
 
 void contTest();
 void voltDC();
-void voltAC();
+void voltAC();//
 
 void setup() {
   lcd.init();
