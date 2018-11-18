@@ -96,15 +96,15 @@ void voltAC(){/////////////////////////////////////////////////////////volt ac m
          wrldPin = bigPin;
          cnt = 1;
        } 
-    Vin = ((wrldPin * (5.0/ 1024)));
-    Vin = sqrt(Vin);
+    Vin = ((wrldPin * .377177);
+    //Vin = sqrt(Vin);
     lcd.setCursor(0, 1);
     lcd.print(" ");
     lcd.setCursor(1, 1);
     //lcd.print(Pin, 3);
     lcd.print(Vin, 3);
     //lcd.print(" Pin Val");
-    lcd.print(" VOLT AC ");
+    lcd.print(" VOLT RMS ");
     delay(500); 
   } else {
     cnt = 0, wrldPin = 0;
@@ -112,7 +112,7 @@ void voltAC(){/////////////////////////////////////////////////////////volt ac m
     lcd.print(" ");
     lcd.setCursor(1, 1);
     lcd.print(Vin, 3);
-    lcd.print(" VOLT AC ");
+    lcd.print(" VOLT RMS ");
     delay(500); 
   }
 }
