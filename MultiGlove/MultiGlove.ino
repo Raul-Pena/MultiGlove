@@ -2,25 +2,25 @@
 #include <Wire.h>
 #include <SoftwareSerial.h>
 
-//#define LCDADDR 0x3F // Select correct I2C address of the I2C LCD (0x27 or 0x3F)
-#define LCDADDR 0x27 // Uncomment for next address, and comment above line!
+#define LCDADDR 0x3F // Select correct I2C address of the I2C LCD (0x27 or 0x3F)
+//#define LCDADDR 0x27 // Uncomment for next address, and comment above line!
 #define LCDCOLS 16
 #define LCDROWS 2
-#define analogPin A0
+#define analogPin A7
 #define chrg 13
 #define dchrg 8
 #define res 10000.0F  //10k Resistor
 
 LiquidCrystal_I2C lcd(LCDADDR, LCDCOLS, LCDROWS); // LCD object
-//const int OUTpin = A2;                                                                       //id = 13
-const int pBtn = 2,buzzer = 9, r = 10, ct = 11, ca = 12, vd = 7, va = 8, id = 3;
+//const int OUTpin = A2;                                                 //id = 13
+const int pBtn = 2,buzzer = 9, ct = 11, ca = 12, vd = 5, va = 6, id = 3, rm = 8;
 int count = 0; //cnt = 0, wrldPin = 0,
 boolean state = false;
 byte USB_Byte;               //used to store data coming from the USB stick
 int timeOut = 2000;  //TimeOut is 2 seconds. This is the amount of time you wish to wait for a response from the CH376S module.
 
 
-SoftwareSerial USB(10, 9);   
+SoftwareSerial USB(1, 0);   
 
 //void contTest();   -------------- SKETCH IS ABLE TO COMPILE WITHOUT THESE PROTOTYPES. CAN DELETE AT ANY TIME
 //void voltDC();
@@ -42,10 +42,10 @@ void setup() {
   pinMode(buzzer,OUTPUT);  //buzzer for cont. test
   pinMode(vd,INPUT);
   pinMode(va,INPUT);
-  pinMode(r,INPUT);
+  pinMode(rm,INPUT);
   pinMode(ct,INPUT);
-  pinMode(11,INPUT);//COMMENT OUT LATER
-  pinMode(13,OUTPUT);//COMMENT OUT LATER
+  //pinMode(11,INPUT);//COMMENT OUT LATER
+  //pinMode(13,OUTPUT);//COMMENT OUT LATER
   pinMode(ca,INPUT);
   pinMode(id,INPUT);
   pinMode(pBtn,INPUT);
@@ -56,49 +56,62 @@ void setup() {
 void loop() {
    //lcd.setCursor(0, 1);
     //lcd.print("   SELECT MODE  ");
-  capTest();
-  /*if(digitalRead(vd)){
+  if(digitalRead(vd)){
     voltDC();
   }else if(digitalRead(va)){
     voltAC();
-  }else if(digitalRead(id)){
-    InducMeter();
   }else if(digitalRead(ca)){
     capTest();
-  }/*else if(digitalRead(ct)){
+  }else if(digitalRead(ct)){
     contTest();
-  }else if(digitalRead(r)){
-  } */
+  }else if(digitalRead(rm)){
+    resMeter();
+  }/*else if(digitalRead(id)){
+    InducMeter();
+  }*/ 
 }
 
 void voltDC(){/////////////////////////////////////////////////////////volt dc meter
-  int Pin = analogRead(A0);
-  int Pin2 = analogRead(A1);
+  int Pin = analogRead(A6);
+  int Pin2 = analogRead(A7);
   float Vin = 0.0;
+  lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("DC Voltmeter");                                   
-  if(Pin > 0 ){///////////////////////////////////////////////////////////////////pos volt dc
-    Vin = (Pin * (5.0*11.90556667/ 1024));  //*.98; *12.19512195 11.99601159 
+  if(Pin > 0 && Pin <= 171){///////////////////////////////////////////////////////////////////pos volt dc
+    Vin = ((Pin * ((5.0*12.19512195)/ 1024)) + 0.17);  //*.98; 11.99601159 
     lcd.setCursor(0, 1);
     lcd.print(" ");
     lcd.setCursor(1, 1);
     lcd.print(Vin, 3);
     lcd.print(" VOLT DC ");
-    //delay(100);
-    //delay(100);
     bttnPress(String(String(Vin,3) + " VOLT DC "));
-    //delay(100);
-    //delay(100);
     delay(500);
-  }else if(Pin2 > 0 ){///////////////////////////////////////////////////////////////////neg volt dc
-    Vin = Pin2 * (5.0*12.58714362 / 1024);   
+  } else if(Pin >= 172){//pos volt dc
+    Vin = (Pin * (5.0*11.97556667/ 1024) + .3); 
+    lcd.setCursor(0, 1);
+    lcd.print(" ");
+    lcd.setCursor(1, 1);
+    lcd.print(Vin, 3);
+    lcd.print(" VOLT DC ");
+    bttnPress(String(String(Vin,3) + " VOLT DC "));
+    delay(500);
+  } else if(Pin2 > 0 && Pin2 <= 171 ){///////////////////////////////////////////////////////////////////neg volt dc
+    Vin = (Pin2 * ((5.0*12.04714362) / 1024)) + 0.2;   
     lcd.setCursor(0, 1);
     lcd.print("-");
     lcd.setCursor(1, 1);
-    //lcd.print(Pin2, 3);
     lcd.print(Vin, 3);
     lcd.print(" VOLT DC ");
-    //delay(200);
+    bttnPress(String(String((-1*Vin),3) + " VOLT DC "));
+    delay(500);
+  }else if(Pin2 >= 172){////neg volt dc
+    Vin = Pin2 * (((5.0*12.04714362)) / 1024) + .32;   
+    lcd.setCursor(0, 1);
+    lcd.print("-");
+    lcd.setCursor(1, 1);
+    lcd.print(Vin, 3);
+    lcd.print(" VOLT DC ");
     bttnPress(String(String((-1*Vin),3) + " VOLT DC "));
     delay(500);
   }else {////////////////////////////////////////////////////output 0v
@@ -107,64 +120,194 @@ void voltDC(){/////////////////////////////////////////////////////////volt dc m
     lcd.setCursor(1, 1);
     lcd.print(Vin, 3);
     lcd.print(" VOLT DC ");
-    //delay(200);
     bttnPress(String(String(Vin,3) + " VOLT DC "));
     delay(500);  
   }  
 }
 
 void voltAC(){/////////////////////////////////////////////////////////volt ac meter
-  int Pin = analogRead(A2);//, bigPin = 0
+  int Pin = analogRead(A6);
   double Vin = 0.0;
+  lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("AC Voltmeter");
   if(Pin > 0){     
-      /*if(cnt == 0){ 
-        for(int i = 0; i < 11; i++){
-          if(bigPin < Pin){
-            bigPin = Pin;  
-          }
-          delay(1);   //comment out for experiment
-          Pin = analogRead(A0); 
-        }
-         wrldPin = bigPin;
-         cnt = 1;
-       } 
-    Vin = ((wrldPin * .377177));*/
-
-    if(Pin < 390){                              //0.9
+    if(Pin < 390){                             
         Vin = (((Pin * (5.0/ 1024) * (2.376)) + .4))/sqrt(2);
-       }else if(Pin > 390){                     //1
+       }else if(Pin > 390){                    
         Vin = (((Pin * (5.0/ 1024) * (2.376)) + .5))/sqrt(2);
        }
-  } else {
-    //cnt = 0, wrldPin = 0;
-     
   }
+  
   lcd.setCursor(0, 1);
   lcd.print(" ");
   lcd.setCursor(1, 1);
   lcd.print(Vin, 3);
   lcd.print(" VOLT RMS ");
-  //delay(100);
-  //delay(100);
   bttnPress(String(String(Vin,3) + " VOLT RMS "));
-  //delay(100);
-  //delay(100);
   delay(500); 
 }
 
 void contTest(){/////////////////////////////////////---Continuity Test DO NOT DELETE YET
   int pin = analogRead(A4);
+  lcd.clear();
   if(pin > 0){
     lcd.setCursor(0, 1);
-    lcd.print(" CONTINUITY TEST ACTIVE ");
+    lcd.print("CONT. TEST ON");
     tone(buzzer,1);
     delay(10);
     noTone(buzzer);
     delay(1000);
+  }else{
+    lcd.setCursor(0, 1);
+    lcd.print("NO CONT.");
   }
 }
+
+
+void capTest(){
+  unsigned long timeStart;
+  unsigned long timeTook;
+  float microF;
+  String prnt;
+  //float nanoF;
+//while( ca > 0)
+//{
+
+  digitalWrite(chrg, HIGH);
+  timeStart = micros();
+                  //analogRead(analogPin)
+  while(analogRead(A5) < 658){ }   //Pauses until Capacitor is 63.2% V
+                      //658 is AnalogConversion
+  timeTook = micros() - timeStart;
+  microF = ((float)timeTook / res);   //Assume in microFarad range
+
+  /*if(microF > 1){
+
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("100nF-4F");
+    lcd.setCursor(0,1);
+    lcd.print(microF);
+    lcd.setCursor(14,1);
+    lcd.print("µF");
+    bttnPress(String(String(microF,3) + " µFARAD(S) "));
+    delay(500);
+  }
+  else{
+    nanoF = microF * 1000.0;
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("100nF-4F");
+    lcd.setCursor(0,1);
+    lcd.print(nanoF);
+    lcd.setCursor(14,1);
+    lcd.print("nF");
+    bttnPress(String(String(nanoF,3) + " nFARAD(S) "));
+    delay(500);
+
+  }*/
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("100nF-4F");
+    lcd.setCursor(0,1);
+    if(microF > 1){
+      lcd.print(microF);
+      prnt = " µ";
+    }else{
+      lcd.print(microF * 1000.0);
+      prnt = " n";
+    }
+    lcd.setCursor(14,1);
+    lcd.print(String(prnt + "F"));
+    prnt = String( prnt + "FARAD(S) ");
+    bttnPress(String(String(microF,3) + prnt));
+    delay(500);
+//}
+
+  digitalWrite(chrg,LOW);       //DISCHARGES CAP for SAFETY
+  pinMode(dchrg,OUTPUT);
+  digitalWrite(dchrg,LOW);
+                    //analogRead(analogPin)
+  while(analogRead(A5) > 0){}
+
+  pinMode(dchrg,INPUT);       //GIVES High Impedence
+
+  /*lcd.setCursor(0,0);
+  lcd.print("Dishcarging Capacitor");
+  lcd.setCursor(0,1);
+  delay(1000)*/
+} 
+
+void resMeter(){
+  
+  int v1 = analogRead(A0), v2 = analogRead(A1), v3 = analogRead(A2), v4 = analogRead(A3);
+  double r1 = 8107, r2 = 19911.0, r3 = 218760.0, r4 = 1080000.0, rx = 108030.0;
+  float rM = 0, vout = 0;
+  double vin = 4.989;
+  boolean zeroFlag = false;
+  
+  lcd.clear();
+  lcd.setCursor(0,0);
+  
+  if(v1 <= 1023 && v1 >= 296.294){
+    vout = (v1 * vin) / 1024.0;
+    rM = ( r1 * ((vin/vout) - 1));
+
+    //lcd.clear();
+    //lcd.setCursor(0,0);
+    lcd.print("Range: 0-19k Ohms");
+    //lcd.setCursor(0,1);
+    //lcd.print(rM);
+    //delay(5000);
+    
+  }else if(v2 <= 511.98 && v2 >= 85.43){
+    vout = (v2 * vin) / 1024.0;
+    rM = ( r2 * ((vin/vout) - 1));
+
+    //lcd.clear();
+    //lcd.setCursor(0,0);
+    lcd.print("Range: 20k Ohms");
+    //lcd.setCursor(0,1);
+    //lcd.print(rM);
+    //delay(5000);
+    
+  }else if(v3 <= 510.83 && v3 >= 181.12 && v1 > 1 ){
+    vout = (v3 * vin) / 1024.0;
+    rM = ( r3 * ((vin/vout) - 1));
+
+    //lcd.clear();
+    //lcd.setCursor(0,0);
+    lcd.print("Range: 200k Ohms");
+    //lcd.setCursor(0,1);
+    //lcd.print(rM);
+    //delay(5000);
+  }else if(v4 <= 511.75 && v4 >= 94.6117){
+    vout = (v4 * vin) / 1024.0;
+    rM = ( r4 * ((vin/vout) - 1));
+
+    //lcd.clear();
+    //lcd.setCursor(0,0);
+    lcd.print("Range: 1M Ohms");
+    //lcd.setCursor(0,1);
+    //lcd.print(rM);
+    //delay(5000);
+  }else{
+    zeroFlag = true;
+    //lcd.clear();
+    //lcd.setCursor(0,0);
+    lcd.print(" Insert Resistor ");
+    delay(500);
+  }
+  
+  if(!zeroFlag){
+    lcd.setCursor(0,1);
+    lcd.print(rM);
+    bttnPress(String(String(rM,3) + " OHMS "));
+    delay(500);
+  }
+}
+
 
 void InducMeter(){
   double pulse, F, Cap, Induc;
@@ -465,59 +608,3 @@ byte getResponseFromUSB(){
 }
 
 
-void capTest(){
-
-  unsigned long timeStart;
-  unsigned long timeTook;
-  float microF;
-  float nanoF;
-//while( ca > 0)
-//{
-
-  digitalWrite(chrg, HIGH);
-  timeStart = micros();
-
-  while(analogRead(analogPin) < 648){ }   //Pauses until Capacitor is 63.2% V
-                      //658 is AnalogConversion
-  timeTook = micros() - timeStart;
-  microF = ((float)timeTook / res);   //Assume in microFarad range
-
-  if(microF > 1){
-
-    lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print("100nF-4F");
-    lcd.setCursor(0,1);
-    lcd.print(microF);
-    lcd.setCursor(14,1);
-    lcd.print("uF");
-    delay(1000);
-  }
-
-  else{
-    nanoF = microF * 1000.0;
-    lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print("100nF-4F");
-    lcd.setCursor(0,1);
-    lcd.print(nanoF);
-    lcd.setCursor(14,1);
-    lcd.print("nF");
-    delay(1000);
-
-  }
-//}
-
-  digitalWrite(chrg,LOW);       //DISCHARGES CAP for SAFETY
-  pinMode(dchrg,OUTPUT);
-  digitalWrite(dchrg,LOW);
-
-  while(analogRead(analogPin) > 0){}
-
-  pinMode(dchrg,INPUT);       //GIVES High Impedence
-
-  /*lcd.setCursor(0,0);
-  lcd.print("Dishcarging Capacitor");
-  lcd.setCursor(0,1);
-  delay(1000)*/
-} 
