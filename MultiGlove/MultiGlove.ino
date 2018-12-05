@@ -1,26 +1,29 @@
+#include <RTClib.h>
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
 #include <SoftwareSerial.h>
 
-#define LCDADDR 0x3F // Select correct I2C address of the I2C LCD (0x27 or 0x3F)
-//#define LCDADDR 0x27 // Uncomment for next address, and comment above line!
+//#define LCDADDR 0x3F // Select correct I2C address of the I2C LCD (0x27 or 0x3F)
+#define LCDADDR 0x27 // Uncomment for next address, and comment above line!
 #define LCDCOLS 16
 #define LCDROWS 2
-#define analogPin A7
+//#define analogPin A7
 #define chrg 13
-#define dchrg 8
+#define dchrg 10
 #define res 10000.0F  //10k Resistor
 
 LiquidCrystal_I2C lcd(LCDADDR, LCDCOLS, LCDROWS); // LCD object
-//const int OUTpin = A2;                                                 //id = 13
-const int pBtn = 2,buzzer = 9, ct = 11, ca = 12, vd = 5, va = 6, id = 3, rm = 8;
+RTC_DS1307 RTC;
+DateTime now;
+//const int OUTpin = A2;                         //vd=5           //id = 13
+const int pBtn = 5,buzzer = 9, ct = 11, ca = 12, vd = 4, va = 6, /*id = 3,*/ rm = 8;
 int count = 0; //cnt = 0, wrldPin = 0,
 boolean state = false;
 byte USB_Byte;               //used to store data coming from the USB stick
 int timeOut = 2000;  //TimeOut is 2 seconds. This is the amount of time you wish to wait for a response from the CH376S module.
 
 
-SoftwareSerial USB(1, 0);   
+SoftwareSerial USB(0, 1);   
 
 //void contTest();   -------------- SKETCH IS ABLE TO COMPILE WITHOUT THESE PROTOTYPES. CAN DELETE AT ANY TIME
 //void voltDC();
@@ -32,6 +35,8 @@ void setup() {
   lcd.backlight();
   Serial.begin(9600);
   USB.begin(9600);
+  //Wire.begin();
+  //RTC.begin();
   lcd.begin (16,2);
   lcd.print("  Powering On");
   lcd.setCursor(0,1);
@@ -42,12 +47,12 @@ void setup() {
   pinMode(buzzer,OUTPUT);  //buzzer for cont. test
   pinMode(vd,INPUT);
   pinMode(va,INPUT);
-  pinMode(rm,INPUT);
   pinMode(ct,INPUT);
+  pinMode(rm,INPUT);
   //pinMode(11,INPUT);//COMMENT OUT LATER
   //pinMode(13,OUTPUT);//COMMENT OUT LATER
   pinMode(ca,INPUT);
-  pinMode(id,INPUT);
+  //pinMode(id,INPUT);
   pinMode(pBtn,INPUT);
   //pinMode(OUTpin, OUTPUT);
   pinMode(chrg, OUTPUT);
@@ -62,18 +67,19 @@ void loop() {
     voltAC();
   }else if(digitalRead(ca)){
     capTest();
-  }else if(digitalRead(ct)){
-    contTest();
   }else if(digitalRead(rm)){
     resMeter();
-  }/*else if(digitalRead(id)){
+  }/*else if(digitalRead(ct)){
+    contTest();
+  }else if(digitalRead(id)){
     InducMeter();
   }*/ 
 }
 
 void voltDC(){/////////////////////////////////////////////////////////volt dc meter
-  int Pin = analogRead(A6);
-  int Pin2 = analogRead(A7);
+  //now = RTC.now();
+  int Pin = analogRead(A4);
+  int Pin2 = analogRead(A5);
   float Vin = 0.0;
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -85,8 +91,9 @@ void voltDC(){/////////////////////////////////////////////////////////volt dc m
     lcd.setCursor(1, 1);
     lcd.print(Vin, 3);
     lcd.print(" VOLT DC ");
+    delay(750);
     bttnPress(String(String(Vin,3) + " VOLT DC "));
-    delay(500);
+    delay(750);
   } else if(Pin >= 172){//pos volt dc
     Vin = (Pin * (5.0*11.97556667/ 1024) + .3); 
     lcd.setCursor(0, 1);
@@ -94,8 +101,9 @@ void voltDC(){/////////////////////////////////////////////////////////volt dc m
     lcd.setCursor(1, 1);
     lcd.print(Vin, 3);
     lcd.print(" VOLT DC ");
+    delay(750);
     bttnPress(String(String(Vin,3) + " VOLT DC "));
-    delay(500);
+    delay(750);
   } else if(Pin2 > 0 && Pin2 <= 171 ){///////////////////////////////////////////////////////////////////neg volt dc
     Vin = (Pin2 * ((5.0*12.04714362) / 1024)) + 0.2;   
     lcd.setCursor(0, 1);
@@ -103,8 +111,9 @@ void voltDC(){/////////////////////////////////////////////////////////volt dc m
     lcd.setCursor(1, 1);
     lcd.print(Vin, 3);
     lcd.print(" VOLT DC ");
+    delay(750);
     bttnPress(String(String((-1*Vin),3) + " VOLT DC "));
-    delay(500);
+    delay(750);
   }else if(Pin2 >= 172){////neg volt dc
     Vin = Pin2 * (((5.0*12.04714362)) / 1024) + .32;   
     lcd.setCursor(0, 1);
@@ -112,21 +121,24 @@ void voltDC(){/////////////////////////////////////////////////////////volt dc m
     lcd.setCursor(1, 1);
     lcd.print(Vin, 3);
     lcd.print(" VOLT DC ");
+    delay(750);  
     bttnPress(String(String((-1*Vin),3) + " VOLT DC "));
-    delay(500);
+    delay(750);
   }else {////////////////////////////////////////////////////output 0v
     lcd.setCursor(0, 1);
     lcd.print(" ");
     lcd.setCursor(1, 1);
     lcd.print(Vin, 3);
     lcd.print(" VOLT DC ");
+    delay(750);
     bttnPress(String(String(Vin,3) + " VOLT DC "));
-    delay(500);  
+    delay(750);
   }  
 }
 
 void voltAC(){/////////////////////////////////////////////////////////volt ac meter
-  int Pin = analogRead(A6);
+ // now = RTC.now();
+  int Pin = analogRead(A4);
   double Vin = 0.0;
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -144,8 +156,9 @@ void voltAC(){/////////////////////////////////////////////////////////volt ac m
   lcd.setCursor(1, 1);
   lcd.print(Vin, 3);
   lcd.print(" VOLT RMS ");
+  delay(750);
   bttnPress(String(String(Vin,3) + " VOLT RMS "));
-  delay(500); 
+  delay(750);
 }
 
 void contTest(){/////////////////////////////////////---Continuity Test DO NOT DELETE YET
@@ -166,19 +179,22 @@ void contTest(){/////////////////////////////////////---Continuity Test DO NOT D
 
 
 void capTest(){
-  unsigned long timeStart;
-  unsigned long timeTook;
+  //now = RTC.now();
+  unsigned long timeStart, timeTook;
   float microF;
   String prnt;
   //float nanoF;
 //while( ca > 0)
 //{
-
+  
   digitalWrite(chrg, HIGH);
   timeStart = micros();
                   //analogRead(analogPin)
   while(analogRead(A5) < 658){ }   //Pauses until Capacitor is 63.2% V
                       //658 is AnalogConversion
+                      lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("cap2");
   timeTook = micros() - timeStart;
   microF = ((float)timeTook / res);   //Assume in microFarad range
 
@@ -221,8 +237,9 @@ void capTest(){
     lcd.setCursor(14,1);
     lcd.print(String(prnt + "F"));
     prnt = String( prnt + "FARAD(S) ");
+    delay(750);
     bttnPress(String(String(microF,3) + prnt));
-    delay(500);
+    delay(750);
 //}
 
   digitalWrite(chrg,LOW);       //DISCHARGES CAP for SAFETY
@@ -240,11 +257,10 @@ void capTest(){
 } 
 
 void resMeter(){
-  
+  //now = RTC.now();
   int v1 = analogRead(A0), v2 = analogRead(A1), v3 = analogRead(A2), v4 = analogRead(A3);
-  double r1 = 8107, r2 = 19911.0, r3 = 218760.0, r4 = 1080000.0, rx = 108030.0;
+  double r1 = 8107, r2 = 19911.0, r3 = 218760.0, r4 = 1080000.0, rx = 108030.0, vin = 4.989;
   float rM = 0, vout = 0;
-  double vin = 4.989;
   boolean zeroFlag = false;
   
   lcd.clear();
@@ -297,19 +313,21 @@ void resMeter(){
     //lcd.clear();
     //lcd.setCursor(0,0);
     lcd.print(" Insert Resistor ");
-    delay(500);
+    delay(2000);
   }
   
   if(!zeroFlag){
     lcd.setCursor(0,1);
     lcd.print(rM);
+    delay(750);
     bttnPress(String(String(rM,3) + " OHMS "));
-    delay(500);
+    delay(750);
   }
 }
 
 
-void InducMeter(){
+/*void InducMeter(){
+  //now = RTC.now();
   double pulse, F, Cap, Induc;
   digitalWrite(13, HIGH);
   delay(5);//give some time to charge inductor.
@@ -335,22 +353,26 @@ void InducMeter(){
   lcd.print("uH");          
   delay(10);
   //LCD print
-  /*lcd.setCursor(0,1); 
-  lcd.print(" ");
-  lcd.setCursor(1,1); 
-  lcd.print(Induc, 3); 
-  lcd.print("Inductance");          
-  delay(5000);*/
+  //lcd.setCursor(0,1); 
+  //lcd.print(" ");
+  //lcd.setCursor(1,1); 
+  //lcd.print(Induc, 3); 
+  //lcd.print("Inductance");          
+  //delay(5000);
   }
-}
+}*/
 
 
 void bttnPress(String data){
+ 
     if(checkConnection(0x01) && !state){
+      lcd.clear(); lcd.print("connected success"); delay(750);
       state = true;   
     }
     if(digitalRead(pBtn) == HIGH && state){
+      lcd.clear(); lcd.print("btn pressed2");delay(750);
       Serial.println("Button Pressed");
+                                    //timeStamp(data)
       appendFile("TEST1.TXT",String(data + "\r\n")); 
       delay(1000); 
     }
@@ -359,6 +381,17 @@ void bttnPress(String data){
       USB.read();
     }   
 }
+/*String timeStamp(String edit){
+    now = RTC.now();
+    edit.concat(String(" " + String(now.hour(),DEC)));
+    edit.concat(String(":" + String(now.minute(),DEC)));
+    edit.concat(String(":" + String(now.second(),DEC)));
+    edit.concat(String("  " + String(now.month(),DEC)));
+    edit.concat(String("/" + String(now.day(),DEC)));
+    edit.concat(String("/" + String(now.year(),DEC)));
+
+    return edit;
+}*/
 
 void writeBytes(){
   USB.write(0x57);
